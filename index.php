@@ -126,13 +126,15 @@
 
 		public static function PathEncode($fileName) {
 			$a = "˙´"; // 89
-			$fileName = str_replace(".", "˙", str_replace("/", "´", $fileName));
+			if (!is_array($fileName))
+			    $fileName = str_replace(".", "˙", str_replace("/", "´", $fileName));
 			return $fileName;
 		}
 
 		public static function PathDecode($fileName) {
 			$a = "˙´"; // 89
-			$fileName = str_replace("˙", ".", str_replace("´", "/", $fileName));
+			if (!is_array($fileName))
+    			$fileName = str_replace("˙", ".", str_replace("´", "/", $fileName));
 			return $fileName;
 		}
 	}
