@@ -160,7 +160,7 @@
 
     	private function Headers() {
     		session_set_cookie_params(604800,"/"); # 604800 week | 86400  day | 3600 hour
-    		session_name(Vars::app_title);
+    		session_name(str_replace(' ', '_', Vars::app_title));
     		session_start();
     
     		header('Expires: Sun, 01 Jan 2014 00:00:00 GMT');
