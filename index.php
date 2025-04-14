@@ -124,6 +124,12 @@
     		$a = ""; // 
     	}
 
+        public static function dumpToFile($variable, $filename) {
+            $fp = fopen($fileName, 'w');
+            fwrite($fp, serialize($variable));
+            fclose($fp);
+        }
+
 		public static function PathEncode($fileName) {
 			$a = "˙´"; // 89
 			if (!is_array($fileName))
@@ -137,6 +143,13 @@
     			$fileName = str_replace("˙", ".", str_replace("´", "/", $fileName));
 			return $fileName;
 		}
+	
+	    public static function StartsWith ($string, $startString)
+        {
+            $len = strlen($startString);
+            return (substr($string, 0, $len) === $startString);
+        }
+	    
 	}
 
     class FileSystem extends Tools {}
@@ -173,7 +186,10 @@
 				if (isset($_GET[Vars::p_fileList])) {
 				    $arg = $_GET[Vars::p_fileList];
         		    $arg = Tools::PathDecode($arg);
+        		    #print_r($arg);
 					$dirTree = FileSystem::dirTree($arg ? $arg : $this->rootPath);
+					#print_r($dirTree);
+					#die();
 					$this->ajaxResponse = $this->fileList($dirTree, 0, true);
 				}
 				if (isset($_GET[Vars::p_fileOpen])) {
@@ -250,6 +266,7 @@
 
 		private $fileListDepth = 0;
 		private function fileList($data, $depth = 0, $format = false) {
+			#print_r($data);
 			if ($this->fileListDepth > 0 and $depth >= $this->fileListDepth) return;
 			$jsonOut = "";
 			$t = "";
@@ -264,9 +281,10 @@
                 if (is_array($v) and isset($v['.'])) {
                     $dirPath = substr($v['.'], 0, strlen($v['.']) - 1);
                 }
-                $href = $dirPath;#urlencode($dirPath);
-    		    $href = Tools::PathEncode($href);
+                $oHref = $dirPath;#urlencode($dirPath);
+    		    $href = Tools::PathEncode($oHref);
     		    $v = Tools::PathEncode($v);
+    		    /* 2022-06-13 * /
                 if ($k != '.')
 				    $jsonOut .= $t.'{"text":"'.$k.'",'.(
 						is_array($v)
@@ -276,7 +294,26 @@
 						: '"href":"'.$v.'"'
 						#) . '}' . (++$i < count($data) - 1 ? "," : "");
 						) . '}' . ",";
-									}
+				/**/
+                if ($k != '.') {
+                    $vIsArray = is_array($v);# || $v == "Array";
+                    if ($vIsArray) {
+                        /** /
+                        $newData = [];
+                        foreach ($data as $k1 => $v1) { 
+                            if (Tools::StartsWith($k1, $oHref))
+                                $newData[$k1] = $v1;
+                        }
+                        /**/
+                        $nodes = $this->fileList($data[$k], $depth + 1, $format).$t;
+                        #$nodes = $this->fileList($v, $depth + 1, $format).$t;
+    				    $jsonOut .= $t.'{"type":"folder","text":"'.$k.'","dirPath":"'.$dirPath.'",'.(
+    						'"nodes":'.$nodes) . '}' . ",";
+                    } else {
+    				    $jsonOut .= $t.'{"type":"file","text":"'.$k.'",'.('"href":"'.$v.'"') . '}' . ",";
+                    }
+                }
+			}
 			$jsonOut = substr($jsonOut, 0, strlen($jsonOut) - 1);
 			return "[".$jsonOut."]";
 		}
@@ -288,7 +325,7 @@
 			# forceconvert to utf-8
 			$output = $fileContents;
 			if(!mb_check_encoding($output, 'UTF-8') OR !($output === mb_convert_encoding(mb_convert_encoding($output, 'UTF-32', 'UTF-8' ), 'UTF-8', 'UTF-32'))) {
-				$output = mb_convert_encoding($output, 'UTF-8', 'pass'); 
+				$output = mb_convert_encoding($output, 'UTF-8', mb_detect_encoding($output)); 
 				if (mb_check_encoding($output, 'UTF-8')) {
 					// log('Converted to UTF-8');
 				} else {
